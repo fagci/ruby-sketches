@@ -24,4 +24,5 @@ class String
 end
 
 # puts '192.168.0.200'.scan_ports(1..1024)
-puts '192.168.0.200'.scan_ports
+# puts '192.168.0.200'.scan_ports
+puts '192.168.0.200'.scan_ports(22, 80)
