@@ -47,6 +47,8 @@ class Query
     self
   end
 
+  alias [] where
+
   def quote(v)
     return v if v.is_a?(Numeric) || !!v == v
 
@@ -82,3 +84,4 @@ DB[:table_name].where(a: 2).all
 DB[:table_name].where(a: (1..5)).all
 DB[:table_name].where(a: [1, 2, 3]).all
 DB[:table_name].where(a: "te'st").all
+DB[:table_name][id: (1..5).to_a, name: 'test'].all
