@@ -5,7 +5,6 @@ require 'socket'
 
 class String
   def find_open_ports(*ports)
-    host = self
     ports = (1..1024) if ports.none?
     ports = ports.first if ports.size == 1 && ports.first.is_a?(Range)
     ports = ports.map(&:to_a).flatten if ports.all? { |p| p.is_a? Enumerable }
@@ -13,7 +12,7 @@ class String
     open_ports = []
     ports.map do |port|
       Thread.new do
-        TCPSocket.open(host, port, connect_timeout: 0.75) do
+        TCPSocket.open(self, port, connect_timeout: 0.75) do
           open_ports << port
         end
       rescue StandardError
