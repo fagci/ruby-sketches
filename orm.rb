@@ -9,7 +9,7 @@ class Database
   end
 
   def [](tbl)
-    Query.new(self, tbl)
+    From.new(self, tbl)
   end
 
   def exec(query)
@@ -20,31 +20,17 @@ end
 class Query
   attr_reader :db
 
-  def initialize(db, tbl)
+  @@kw = 'SELECT *'
+  @@op = ' '
+
+  def initialize(db, parent = nil, *params)
     @db = db
-    @select = 'SELECT *'
-    @from = [tbl]
-    @where = []
+    @parent = parent
+    @parts = []
   end
 
   def where(*params)
-    params.each do |q|
-      next unless q.is_a? Hash
-
-      q.map do |k, v|
-        @where <<
-          case v
-          when Numeric, String
-            "#{k} = #{quote v}"
-          when Array
-            enum = v.map { |v| quote(v) }.join(', ')
-            "#{k} IN (#{enum})"
-          when Range
-            "#{k} BETWEEN #{quote v.first} AND #{quote v.last}"
-          end
-      end
-    end
-    self
+    Where.new(@db, self, *params)
   end
 
   alias [] where
@@ -65,10 +51,44 @@ class Query
 
   def to_s
     [
-      @select,
-      @from.empty? ? '' : "FROM #{@from.join(', ')}",
-      @where.empty? ? '' : "WHERE #{@where.join(' AND ')}"
-    ].reject(&:empty?).join(' ') + ';'
+      @parent,
+      "#{@@kw} #{@parts.join(@@op)}"
+    ].compact.join(' ')
+  end
+end
+
+class From < Query
+  @@kw = 'FROM'
+  @@op = ', '
+  def initialize(db, parent, *params)
+    super(db, parent)
+
+    @parts = params
+  end
+end
+
+class Where < Query
+  @@kw = 'WHERE'
+  @@op = ' AND '
+  def initialize(db, parent, *params)
+    super(db, parent)
+
+    params.each do |q|
+      next unless q.is_a? Hash
+
+      q.map do |k, v|
+        @parts <<
+          case v
+          when Numeric, String
+            "#{k} = #{quote v}"
+          when Array
+            enum = v.map { |v| quote(v) }.join(', ')
+            "#{k} IN (#{enum})"
+          when Range
+            "#{k} BETWEEN #{quote v.first} AND #{quote v.last}"
+          end
+      end
+    end
   end
 end
 
@@ -80,8 +100,10 @@ end
 
 DB = 'sqlite:///local.db'.connect
 
-DB[:table_name].where(a: 2).all
-DB[:table_name].where(a: (1..5)).all
-DB[:table_name].where(a: [1, 2, 3]).all
-DB[:table_name].where(a: "te'st").all
-DB[:table_name][id: (1..5).to_a, name: 'test'].all
+t = DB[:table_name]
+
+t.where(a: 2).all
+t.where(a: (1..5)).all
+t.where(a: [1, 2, 3]).all
+t.where(a: "te'st").all
+t[id: (1..5).to_a, name: 'test'].all
