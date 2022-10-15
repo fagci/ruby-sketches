@@ -6,6 +6,7 @@ module IP
   class RandomWAN
     include Enumerable
 
+    RANDOM_RANGE = (0x01000000...0xffffffff).freeze # exclude current network and local broadcast
     EXCLUDE_RANGES = [
       (0xe0000000..0xefffffff), # 224.0.0.0 - 239.255.255.255
       (0xf0000000..0xfffffffe), # 240.0.0.0 - 255.255.255.254
@@ -26,7 +27,7 @@ module IP
 
     def each(&block)
       loop do
-        intip = rand(0x01000000...0xffffffff) # exclude current network and local broadcast
+        intip = rand(RANDOM_RANGE)
         next if EXCLUDE_RANGES.any? { |r| r.cover? intip }
 
         block.call [intip].pack('N').unpack('CCCC').join('.')
