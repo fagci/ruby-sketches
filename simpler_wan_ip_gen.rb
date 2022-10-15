@@ -38,10 +38,4 @@ end
 random_wan = IP::RandomWAN.new
 
 puts "Single IP: #{random_wan.first}"
-
-puts
-puts 'Multiple IPs:'
-
-random_wan.first(5).each do |ip|
-  puts ip
-end
+puts "Multiple IPs: #{random_wan.first(3).join(' ')}"
