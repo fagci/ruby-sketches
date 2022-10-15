@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 # WAN range IP generator
-class WANIPGen
+class WANIPGenerator
   include Enumerable
 
   EXCLUDE_RANGES = [
@@ -23,20 +23,23 @@ class WANIPGen
     (0xe9fc0000..0xe9fc00ff)  # 233.252.0.0 - 233.252.0.255
   ].freeze
 
-  def ip
+  def each(&block)
     loop do
       intip = rand(0x01000000...0xffffffff) # exclude current network and local broadcast
       next if EXCLUDE_RANGES.any? { |r| r.cover? intip }
 
-      return [intip].pack('N').unpack('CCCC').join('.')
+      block.call [intip].pack('N').unpack('CCCC').join('.')
     end
-  end
-
-  def each(&block)
-    loop { block.call ip }
   end
 end
 
-WANIPGen.new.first(5).each do |ip|
+ip_gen = WANIPGenerator.new
+
+puts "Single IP: #{ip_gen.first}"
+
+puts
+puts 'Multiple IPs:'
+
+ip_gen.first(5).each do |ip|
   puts ip
 end
