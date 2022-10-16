@@ -20,11 +20,11 @@ class Channel
     @w << "#{Marshal.dump(data)}#{$RS}"
   end
 
-  def close_r
+  def init_write
     @r.close
   end
 
-  def close_w
+  def init_read
     @w.close
   end
 end
@@ -45,14 +45,14 @@ class Multiprocess
   def run_producers(workers_count, &block)
     workers_count.times do
       fork do
-        @channel.close_r
+        @channel.init_write
         @channel.instance_eval(&block)
       end
     end
-    @channel.close_w
   end
 
   def run_consumer
+    @channel.init_read
     while (data = @channel.read)
       @on_result.call(data)
     end
