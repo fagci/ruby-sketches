@@ -3,7 +3,7 @@
 
 require 'English'
 
-# Creates one way channel from tasks to consumer
+# Creates one way channel
 class Channel
   def initialize
     @read_io, @write_io = IO.pipe
