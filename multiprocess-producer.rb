@@ -1,33 +1,33 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
+require 'English'
+
+# Creates read-only channel from tasks to consumer
 class Multiprocess
   def initialize(&block)
     @r, @w = IO.pipe
     @on_result = block
   end
 
-  def work(workers = 4, &block)
-    run_producers(workers, &block)
+  def work(workers_count = 4, &block)
+    run_producers(workers_count, &block)
     run_consumer
   end
 
   protected
 
-  def run_producers(workers, &block)
-    workers.times do
+  def run_producers(workers_count, &block)
+    workers_count.times do
       fork do
-        @w << "#{Marshal.dump(block.call)}#{$/}"
+        @w << "#{Marshal.dump(block.call)}#{$RS}"
       end
     end
     @w.close
   end
 
   def run_consumer
-    loop do
-      data = @r.gets
-      break unless data
-
+    while (data = @r.gets)
       @on_result.call(Marshal.load(data))
     end
   end
