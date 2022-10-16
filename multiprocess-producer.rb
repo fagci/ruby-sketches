@@ -3,13 +3,14 @@
 
 require 'English'
 
-# Creates read-only channel from tasks to consumer
+# Creates one way channel from tasks to consumer
 class Channel
   def initialize
     @r, @w = IO.pipe
   end
 
   def read
+    @w.close unless @w.closed?
     data = @r.gets
     return nil unless data
 
@@ -17,18 +18,12 @@ class Channel
   end
 
   def write(data)
+    @r.close unless @r.closed?
     @w << "#{Marshal.dump(data)}#{$RS}"
-  end
-
-  def init_write
-    @r.close
-  end
-
-  def init_read
-    @w.close
   end
 end
 
+# Run tasks using multiple processes
 class Multiprocess
   def initialize(&block)
     @channel = Channel.new
@@ -45,14 +40,12 @@ class Multiprocess
   def run_producers(workers_count, &block)
     workers_count.times do
       fork do
-        @channel.init_write
         @channel.instance_eval(&block)
       end
     end
   end
 
   def run_consumer
-    @channel.init_read
     while (data = @channel.read)
       @on_result.call(data)
     end
