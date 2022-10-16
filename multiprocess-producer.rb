@@ -4,9 +4,34 @@
 require 'English'
 
 # Creates read-only channel from tasks to consumer
+class Channel
+  def initialize
+    @r, @w = IO.pipe
+  end
+
+  def read
+    data = @r.gets
+    return nil unless data
+
+    Marshal.load(data) # rubocop:disable Security/MarshalLoad
+  end
+
+  def write(data)
+    @w << "#{Marshal.dump(data)}#{$RS}"
+  end
+
+  def close_r
+    @r.close
+  end
+
+  def close_w
+    @w.close
+  end
+end
+
 class Multiprocess
   def initialize(&block)
-    @r, @w = IO.pipe
+    @channel = Channel.new
     @on_result = block
   end
 
@@ -20,15 +45,16 @@ class Multiprocess
   def run_producers(workers_count, &block)
     workers_count.times do
       fork do
-        @w << "#{Marshal.dump(block.call)}#{$RS}"
+        @channel.close_r
+        @channel.instance_eval(&block)
       end
     end
-    @w.close
+    @channel.close_w
   end
 
   def run_consumer
-    while (data = @r.gets)
-      @on_result.call(Marshal.load(data))
+    while (data = @channel.read)
+      @on_result.call(data)
     end
   end
 end
@@ -38,5 +64,7 @@ mp = Multiprocess.new do |data|
 end
 
 mp.work do
-  sleep rand(5)
+  4.times do |i|
+    write "i: #{i}, t: #{sleep(rand(5))}"
+  end
 end
